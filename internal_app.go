@@ -430,6 +430,7 @@ func newApp(c Config) (Application, error) {
 			Logger:       c.Logger,
 			AgentVersion: Version,
 		},
+		flush: make(chan bool, 1),
 	}
 
 	app.config.Logger.Info("application created", map[string]interface{}{
