@@ -70,7 +70,8 @@ type app struct {
 	// (disconnect, license exception, shutdown).
 	err error
 
-	flush chan bool
+	flushStart    chan bool
+	flushComplete chan bool
 }
 
 // appRun contains information regarding a single connection session with the
@@ -154,7 +155,7 @@ func (app *app) doHarvest(h *internal.Harvest, harvestStart time.Time, run *appR
 			app.Consume(run.RunID, p)
 		}
 	}
-	app.flush <- false
+	app.flushComplete <- true
 }
 
 func connectAttempt(app *app) (*appRun, error) {
@@ -242,7 +243,7 @@ func (app *app) process() {
 
 	for {
 		select {
-		case f := <-app.flush:
+		case f := <-app.flushStart:
 			if f && nil != run {
 				now := time.Now()
 				go app.doHarvest(h, now, run)
@@ -320,10 +321,8 @@ func (app *app) process() {
 }
 
 func (app *app) Flush() {
-	app.flush <- true
-	for <-app.flush {
-		// nop
-	}
+	app.flushStart <- true
+	<-app.flushComplete
 }
 
 func (app *app) Shutdown(timeout time.Duration) {
@@ -430,7 +429,8 @@ func newApp(c Config) (Application, error) {
 			Logger:       c.Logger,
 			AgentVersion: Version,
 		},
-		flush: make(chan bool, 1),
+		flushStart:    make(chan bool, 1),
+		flushComplete: make(chan bool, 1),
 	}
 
 	app.config.Logger.Info("application created", map[string]interface{}{
