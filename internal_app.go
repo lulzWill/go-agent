@@ -10,8 +10,8 @@ import (
 	"sync"
 	"time"
 
-	"github.com/newrelic/go-agent/internal"
-	"github.com/newrelic/go-agent/internal/logger"
+	"github.com/lulzWill/go-agent/internal"
+	"github.com/lulzWill/go-agent/internal/logger"
 )
 
 var (
@@ -69,6 +69,8 @@ type app struct {
 	// err is non-nil if the application will never be connected again
 	// (disconnect, license exception, shutdown).
 	err error
+
+	flush chan bool
 }
 
 // appRun contains information regarding a single connection session with the
@@ -152,6 +154,7 @@ func (app *app) doHarvest(h *internal.Harvest, harvestStart time.Time, run *appR
 			app.Consume(run.RunID, p)
 		}
 	}
+	app.flush <- false
 }
 
 func connectAttempt(app *app) (*appRun, error) {
@@ -239,6 +242,12 @@ func (app *app) process() {
 
 	for {
 		select {
+		case f := <-app.flush:
+			if f && nil != run {
+				now := time.Now()
+				go app.doHarvest(h, now, run)
+				h = internal.NewHarvest(now)
+			}
 		case <-app.harvestTicker.C:
 			if nil != run {
 				now := time.Now()
@@ -307,6 +316,13 @@ func (app *app) process() {
 			})
 			processConnectMessages(run, app.config.Logger)
 		}
+	}
+}
+
+func (app *app) Flush() {
+	app.flush <- true
+	for <-app.flush {
+		// nop
 	}
 }
 

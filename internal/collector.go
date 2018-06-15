@@ -10,7 +10,7 @@ import (
 	"os"
 	"regexp"
 
-	"github.com/newrelic/go-agent/internal/logger"
+	"github.com/lulzWill/go-agent/internal/logger"
 )
 
 const (

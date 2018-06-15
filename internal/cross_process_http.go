@@ -3,7 +3,7 @@ package internal
 import (
 	"net/http"
 
-	"github.com/newrelic/go-agent/internal/cat"
+	"github.com/lulzWill/go-agent/internal/cat"
 )
 
 // InitFromHTTPRequest initialises the TxnCrossProcess from the given request.
