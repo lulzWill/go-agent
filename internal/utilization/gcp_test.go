@@ -4,7 +4,7 @@ import (
 	"net/http"
 	"testing"
 
-	"github.com/newrelic/go-agent/internal/crossagent"
+	"github.com/lulzWill/go-agent/internal/crossagent"
 )
 
 func TestCrossAgentGCP(t *testing.T) {

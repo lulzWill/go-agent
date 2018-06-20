@@ -6,8 +6,8 @@ import (
 	"net/http"
 
 	"github.com/gorilla/mux"
-	newrelic "github.com/newrelic/go-agent"
-	"github.com/newrelic/go-agent/internal"
+	newrelic "github.com/lulzWill/go-agent"
+	"github.com/lulzWill/go-agent/internal"
 )
 
 func init() { internal.TrackUsage("integration", "framework", "gorilla", "v1") }
