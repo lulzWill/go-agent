@@ -10,7 +10,7 @@ import (
 	"os"
 	"regexp"
 
-	"github.com/newrelic/go-agent/internal/logger"
+	"github.com/lulzWill/go-agent/internal/logger"
 )
 
 const (
@@ -86,6 +86,24 @@ func (e unexpectedStatusCodeErr) Error() string {
 	return fmt.Sprintf("unexpected HTTP status code: %d", e.code)
 }
 
+func collectorRequestInternalLazy(url string, data []byte, cs RpmControls) {
+	deflated, err := compress(data)
+	if nil != err {
+		return
+	}
+
+	req, err := http.NewRequest("POST", url, deflated)
+	if nil != err {
+		return
+	}
+
+	req.Header.Add("Accept-Encoding", "identity, deflate")
+	req.Header.Add("Content-Type", "application/octet-stream")
+	req.Header.Add("User-Agent", userAgentPrefix+cs.AgentVersion)
+	req.Header.Add("Content-Encoding", "deflate")
+	go cs.Client.Do(req)
+}
+
 func collectorRequestInternal(url string, data []byte, cs RpmControls) ([]byte, error) {
 	deflated, err := compress(data)
 	if nil != err {
@@ -134,6 +152,20 @@ func collectorRequestInternal(url string, data []byte, cs RpmControls) ([]byte, 
 		return nil, err
 	}
 	return parseResponse(b)
+}
+
+func CollectorRequestLazy(cmd RpmCmd, cs RpmControls) {
+	url := rpmURL(cmd, cs)
+
+	if cs.Logger.DebugEnabled() {
+		cs.Logger.Debug("rpm request", map[string]interface{}{
+			"command": cmd.Name,
+			"url":     url,
+			"payload": JSONString(cmd.Data),
+		})
+	}
+
+	collectorRequestInternalLazy(url, cmd.Data, cs)
 }
 
 // CollectorRequest makes a request to New Relic.

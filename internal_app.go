@@ -10,8 +10,8 @@ import (
 	"sync"
 	"time"
 
-	"github.com/newrelic/go-agent/internal"
-	"github.com/newrelic/go-agent/internal/logger"
+	"github.com/lulzWill/go-agent/internal"
+	"github.com/lulzWill/go-agent/internal/logger"
 )
 
 var (
@@ -111,7 +111,30 @@ func shouldSaveFailedHarvest(e error) bool {
 }
 
 func (app *app) doManualHarvest(h *internal.Harvest, harvestStart time.Time, run *appRun) {
-	app.doHarvest(h, harvestStart, run)
+	h.CreateFinalMetrics()
+	h.Metrics = h.Metrics.ApplyRules(run.MetricRules)
+
+	payloads := h.Payloads()
+	for cmd, p := range payloads {
+
+		data, err := p.Data(run.RunID.String(), harvestStart)
+
+		if nil == data && nil == err {
+			continue
+		}
+
+		if nil == err {
+			call := internal.RpmCmd{
+				Collector: run.Collector,
+				RunID:     run.RunID.String(),
+				Name:      cmd,
+				Data:      data,
+			}
+
+			// The reply from harvest calls is always unused.
+			internal.CollectorRequestLazy(call, app.rpmControls)
+		}
+	}
 	app.flushComplete <- true
 }
 
